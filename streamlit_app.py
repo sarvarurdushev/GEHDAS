@@ -13,6 +13,7 @@ from plotly.subplots import make_subplots
 import random
 import math
 from datetime import datetime, timedelta
+import os
 
 # Set page configuration
 st.set_page_config(
@@ -51,7 +52,7 @@ st.markdown("""
 @st.cache_resource
 def init_database():
     """Initialize and populate the database (cached)"""
-    conn = sqlite3.connect(': memory:', check_same_thread=False)
+    conn = sqlite3.connect(':memory:', check_same_thread=False)
     create_schema(conn)
     populate_data(conn)
     return conn
@@ -155,7 +156,7 @@ def create_schema(conn):
 def calculate_habitable_zone(luminosity, temp_k):
     """Calculate habitable zone boundaries"""
     t_star = temp_k - 5780
-    s_eff_inner = 1. 0146 + 8.1884e-5 * t_star + 1.9394e-9 * t_star**2
+    s_eff_inner = 1.0146 + 8.1884e-5 * t_star + 1.9394e-9 * t_star**2
     s_eff_outer = 0.3507 + 5.9578e-5 * t_star + 1.6707e-9 * t_star**2
     inner_hz = math.sqrt(luminosity / s_eff_inner)
     outer_hz = math.sqrt(luminosity / s_eff_outer)
@@ -285,7 +286,7 @@ def populate_data(conn):
                 radius = random. uniform(4, 15)
             
             if radius < 1.5:
-                mass = radius ** 3. 5
+                mass = radius ** 3.5
             elif radius < 4:
                 mass = radius ** 2.5
             else:
@@ -386,7 +387,7 @@ def populate_data(conn):
     
     for m in missions:
         cursor.execute('''
-            INSERT INTO DISCOVERY_MISSIONS (name, organization, mission_type, detection_method,
+            INSERT OR IGNORE INTO DISCOVERY_MISSIONS (name, organization, mission_type, detection_method,
                 launch_date, status, sensitivity_rating)
             VALUES (?, ?, ?, ?, ?, ?, ?)
         ''', m)
@@ -516,6 +517,13 @@ def get_planet_scatter_data(conn):
 # ============================================================================
 
 def main():
+    # Optionally clear Streamlit cached resources (useful after deploy/code changes)
+    if os.getenv('CLEAR_STREAMLIT_CACHE') == '1':
+        try:
+            st.cache_resource.clear()
+        except Exception:
+            pass
+
     # Initialize database
     conn = init_database()
     stats = get_database_stats(conn)
@@ -562,7 +570,7 @@ def main():
         
         with col1:
             st.subheader("Search Filters")
-            min_esi = st. slider("Minimum ESI Score", 0.0, 1. 0, 0.0, 0.05)
+            min_esi = st. slider("Minimum ESI Score", 0.0, 1.0, 0.0, 0.05)
             max_distance = st.slider("Maximum Distance (ly)", 10, 500, 200, 10)
             planet_type = st.selectbox(
                 "Planet Type",
